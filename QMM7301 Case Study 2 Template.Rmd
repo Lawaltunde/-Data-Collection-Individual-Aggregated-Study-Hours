@@ -1,0 +1,194 @@
+---
+title: "QMM7301 Case Study  2 [20%]"
+author: "Name Here (Student Number Here)"
+date: 'Due: April 16, 2025 at 11:59PM'
+output:
+  rmdformats::downcute:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+## [**Introduction**]{style="color: #8F2050;"}
+
+[*In this document I started with a template. You may need to install the rmdformats package directly in the console. You can try different formats that are named here <https://juba.github.io/rmdformats/>. The one used in this document is called downcute.*]{style="color: #8F2050;"}
+
+In QMM7300 and QMM7301 all students collected personalized data to analyze. Using RMarkdown to analyze this data, you can show your code and output from R directly in your report.
+
+In the introduction section, you must describe the variables collected. All students had to collect data on hours studying each day of their first 2 terms of study. We can also identify the program code for each student.
+
+You can include a list of your variables in an RMarkdown table. The relevant variables for Case Study 2 are:
+
+| Variable                    | Type         |
+|:----------------------------|:-------------|
+| Date                        | Identifier   |
+| Hours Studying              | Quantitative |
+| Term (F19, W20, F21 or W22) | Categorical  |
+| Program (BAPG, CAGC, HAGC)  | Categorical  |
+
+You must also include calculations of summary statistics. This is how you run code in RMarkdown. Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the summary statistics, only the output is shown. You can also set `include = FALSE` to hide all code and output and `message = FALSE` and `warning = FALSE` to hide all warnings and messages when installing new packages.
+
+**Summary Statistics**
+
+These summary statistics can be used to compare the amount of time you spend studying to other students and to other students by program.
+
+```{r include=FALSE}
+ajit<-read.csv(file="Personalized Data - Ajit.csv", header=TRUE)
+ajit.studymean<-mean(ajit$Study, na.rm=TRUE)
+ajit.studysd<-sd(ajit$Study, na.rm=TRUE)
+
+combined<-read.csv(file="Combined.csv", header=TRUE, fileEncoding="UTF-8-BOM")
+
+BAPG<-subset(combined, Program=="BAPG")
+```
+
+| Data Set     | Mean                                 | Standard Deviation                 |
+|:-----------------------|:-----------------------|:-----------------------|
+| ajit         | `r mean(ajit$Study, na.rm=TRUE)`     | `r sd(ajit$Study, na.rm=TRUE)`     |
+| All Students | `r mean(combined$Study, na.rm=TRUE)` | `r sd(combined$Study, na.rm=TRUE)` |
+| BAPG         | `r mean(BAPG$Study, na.rm=TRUE)`     | `r sd(BAPG$Study, na.rm=TRUE)`     |
+| CAGC         | Value here                           | Value here                         |
+| HAGC         | Value here                           | Value here                         |
+
+You will use your own personalized data set and a combined class data set to answer the questions:
+
+1.  Are there differences in the average study times for students in the different analytics streams?
+2.  Is the distribution of days studied more than 3.13 hours (the average daily study time for students at McGill) the same for students in the different analytics streams (or in other words, independent of program stream)?
+3.  How does your personal study time change over time?
+
+You must also **summarize** the methods that will be used throughout Case Study 2 to answer these questions:
+
+-   ANOVA
+-   chi-square tests
+-   time series analysis
+
+## [**Data Analysis**]{style="color: #8F2050;"}
+
+Don't forget you must include **more than 5 examples** of your daily activities that help to explain the results of your analysis for full marks in this section!
+
+### Part 1: ANOVA
+
+Place your analysis here.
+
+You can easily write hypotheses like this:
+
+$H_0: \mu_1 = \mu_2 = ... = \mu_{group}$
+
+$H_A:$ At least one mean is different
+
+```{r include=FALSE}
+#include code within chunks that have hidden output
+
+#Follow instruction on Module 6 Applied Activity Case Study 2 Check Point
+#for creating random subsets for the streams 
+
+#use last digits of student number ex. 138572 to get SAME random 
+#numbers each time you run your code so your output doesn't change
+set.seed(138572)
+```
+
+Once you have selected random samples of 50 values from each program (BAPG, CAGC, HAGC) to prepare the data for analysis, you will conduct a full ANOVA analysis as per the case study instructions.
+
+### Part 2: Chi-Square Tests
+
+Place your analysis here. The code below is to set up a table for a chi-square test. You must then perform the full chi-square analysis as per the case study instructions.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#include code within chunks that have hidden output
+
+#Follow instruction on Module 9 Applied Activity Case Study 2 Check Point
+#for creating categorical variable to analyze counts
+
+class<-read.csv("Combined.csv", header=TRUE, fileEncoding="UTF-8-BOM")
+BAPG<-subset(class, Program=="BAPG")
+CAGC<-subset(class, Program=="CAGC")
+HAGC<-subset(class, Program=="HAGC")
+
+library(dplyr)
+BAPG.50<-sample_n(BAPG, 50)
+CAGC.50<-sample_n(CAGC, 50)
+HAGC.50<-sample_n(HAGC, 50)
+full.50<-rbind(BAPG.50, CAGC.50, HAGC.50)
+
+full.50$HoursCategory<-ifelse(full.50$Study>3.13, "Above", "Below")
+
+observed.hours<-table(full.50$HoursCategory, full.50$Program)
+observed.hours
+
+chisq.test(observed.hours)$expected
+```
+
+### Part 3: Time Series Analysis
+
+Place your analysis here. The code below is to set up your time series data. You will need to alter this code for your own data, create multiple moving average models, and the best exponential smoothing model as per the case study instructions. Make sure you include the plots for your time series in the report but hide your code!
+
+```{r include=FALSE, warning = FALSE, message=FALSE}
+#you must install these packages in the console first using 
+#install.packages("zoo")
+#install.packages("forecast")
+library(zoo)
+library(forecast)
+
+ajit$Date <- as.Date(ajit$Date,format="%m/%d/%Y") #Check your format! Dependening on how you entered dates in Excel, you might have to change it
+ajit.zoo <- zoo(ajit[,3],ajit[,1]) #remove all columns except study time and set dates to index
+
+ajit.all <- merge(ajit.zoo,zoo(,seq(start(ajit.zoo),end(ajit.zoo),by="day")), all=TRUE) #include all missing dates
+
+#Make a time series with the longest stretch of dates
+ajit.ts<-ts(na.contiguous(ajit.all), frequency = 7) #frequency = 7 lets us plot the decomposition 
+```
+
+```{r echo=FALSE}
+plot(decompose(ajit.ts))
+```
+
+```{r include=FALSE, warning = FALSE, message=FALSE}
+#you can then do any of the time series steps with your new data set!
+plot.ts(ajit.ts, xlab="Days since August 31, 2019", ylab="Hours Studied", main="Time Series Plot")
+
+```
+
+```{r echo=FALSE, warning = FALSE, message=FALSE}
+library(TTR)
+#Assign any value to the legth of the moving average below  
+L<-12
+ajit.maL<-SMA(ajit.ts, L)
+
+#Make sure you change the xlab and main title for YOUR PERSONALIZED DATA
+plot.ts(cbind(ajit.ts, ajit.maL), plot.type="single", col=c("black", "red"), 
+        xlab="Days since August 31, 2019", ylab="Hours Studied", main="ajit's Personalized Study Data")
+legend("bottomright", legend=c("Data", "MA"), col=c("black", "red"), lty=1, cex=0.5)
+
+```
+
+```{r, include=FALSE}
+##################################################################
+ERRORS<-function(data, L){
+  ma.data<-SMA(data, n=L)
+  error<-NULL
+  for (i in 1:length(data)-L){
+    error[i]<-data[i+L]-ma.data[i+L-1]
+  }
+  error.p<-NULL
+  for(i in 1:length(data)-L){
+    error.p[i]<-abs(data[i+L]-ma.data[i+L-1])/abs(data[i+L])
+  }
+  MSE<-mean(error^2)
+  MAD<-mean(abs(error))
+  MAPE<-mean(error.p, na.rm=TRUE)*100
+  error.df<-data.frame(errors=c(MSE, MAD, MAPE), row.names=c("MSE", "MAD", "MAPE"))
+  return(error.df)
+}
+##################################################################
+#put results for all models into a table!!!
+ERRORS(ajit.ts, 12)
+```
+
+## [**Conclusion**]{style="color: #8F2050;"}
+
+Summarize your findings for all questions:
+
+1.  Are there differences in the average study times for students in the different analytics streams?
+2.  Is the distribution of days studied more than 3.13 hours (the average daily study time for students at McGill) the same for students in the different analytics streams (or in other words, independent of program stream)?
+3.  How does your personal study time change over time?
+4.  Explain what you learned about yourself and your daily habits by completing the report.
